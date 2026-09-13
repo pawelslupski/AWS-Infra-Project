@@ -1,0 +1,3 @@
+# Leave this directory EMPTY (aside from .gitkeep).
+# LocalStack runs *.sh / *.py scripts from here after startup (ready.d).
+# Create AWS resources (S3/SQS) with Terraform in Phase 2, not here.

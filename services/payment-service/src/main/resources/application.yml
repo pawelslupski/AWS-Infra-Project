@@ -1,0 +1,55 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: payment-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/payment}
+    username: ${SPRING_DATASOURCE_USERNAME:payment}
+    password: ${SPRING_DATASOURCE_PASSWORD:payment}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: payment-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.example.payment.OrderCreatedEvent
+        spring.json.use.type.headers: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  kafka:
+    topic:
+      orders-created: ${APP_KAFKA_TOPIC_ORDERS_CREATED:orders.created}
+      payments-completed: ${APP_KAFKA_TOPIC_PAYMENTS_COMPLETED:payments.completed}
+  s3:
+    bucket: ${APP_S3_BUCKET:aws-infra-order-documents-local}
+    # empty endpoint => real AWS. Set => LocalStack.
+    endpoint: ${AWS_ENDPOINT_URL:http://localhost:4566}
+    region: ${AWS_REGION:eu-central-1}
+    access-key: ${AWS_ACCESS_KEY_ID:test}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+    # learning: true = the service creates the bucket itself if it doesn't exist.
+    # prod: false = Terraform manages the bucket.
+    auto-create-bucket: ${APP_S3_AUTO_CREATE_BUCKET:true}

@@ -1,0 +1,10 @@
+# Don't send this to the build context (smaller context = faster build,
+# no risk of overwriting /workspace/target built inside the image).
+target/
+.idea/
+*.iml
+.git/
+.gitignore
+*.md
+.env
+.env.*

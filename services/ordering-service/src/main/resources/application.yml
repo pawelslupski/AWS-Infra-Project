@@ -1,0 +1,35 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: ordering-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ordering}
+    username: ${SPRING_DATASOURCE_USERNAME:ordering}
+    password: ${SPRING_DATASOURCE_PASSWORD:ordering}
+
+  jpa:
+    hibernate:
+      ddl-auto: update          # learning: Hibernate creates the tables itself. Prod: Flyway/Liquibase.
+    open-in-view: false
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false   # don't inject Java class names into the headers
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  kafka:
+    topic:
+      orders-created: ${APP_KAFKA_TOPIC_ORDERS_CREATED:orders.created}

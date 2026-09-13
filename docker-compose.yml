@@ -1,0 +1,262 @@
+# =============================================================================
+#  MODEL docker-compose.yml
+#  Local infrastructure: Kafka (KRaft) + 3x PostgreSQL + LocalStack
+#
+#  The application services (ordering/payment/warehouse) are ADDED BY YOU in Phase 1.
+#  A skeleton entry for one is commented out at the bottom of the file.
+#
+#  Start:   docker compose up -d
+#  Status:  docker compose ps
+#  Logs:    docker compose logs -f kafka
+#  Stop:    docker compose down          (data stays in the volumes)
+#  Reset:   docker compose down -v        (wipes the volumes = clean databases)
+# =============================================================================
+
+name: aws-infra-project
+
+# -----------------------------------------------------------------------------
+#  YAML anchors (&name / *name) — DRY for the repeated Postgres bits.
+# -----------------------------------------------------------------------------
+x-postgres-common: &postgres-common
+  image: postgres:16-alpine
+  restart: unless-stopped
+  # Healthcheck: lets Compose know when the database is REALLY accepting connections.
+  # The application services will use `depends_on: { condition: service_healthy }`.
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+    interval: 5s
+    timeout: 5s
+    retries: 10
+
+services:
+
+  # ===========================================================================
+  #  KAFKA — KRaft mode (no ZooKeeper). A single broker also acts as the controller.
+  #  The apache/kafka image is "vanilla" (no Confluent add-ons).
+  # ===========================================================================
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      # 9092 — for clients FROM THE HOST (e.g. your IDE, kafka-cli on your laptop).
+      - "9092:9092"
+    environment:
+      # --- Node identity within the KRaft cluster ---
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # --- Listeners ---
+      # INTERNAL:19092 — traffic from other containers on the Compose network (they address "kafka").
+      # EXTERNAL:9092   — traffic from the host (addresses "localhost").
+      # CONTROLLER:9093 — internal KRaft protocol.
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:19092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
+      # --- Settings for a SINGLE broker (do not use in production) ---
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"   # convenient for learning; in production: false
+
+      # --- KRaft data directory; CLUSTER_ID is required on first startup ---
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: aws-infra-kraft-cluster-01
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  # ===========================================================================
+  #  KAFKA-UI — web panel for browsing topics/messages/consumer groups.
+  #  A developer tool only.
+  # ===========================================================================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:19092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ===========================================================================
+  #  POSTGRES x3 — a SEPARATE instance per service (its own container, volume, port).
+  #  Different host port (5432/5433/5434); the port inside the container is always 5432.
+  # ===========================================================================
+  postgres-ordering:
+    <<: *postgres-common
+    container_name: postgres-ordering
+    environment:
+      POSTGRES_USER: ordering
+      POSTGRES_PASSWORD: ordering
+      POSTGRES_DB: ordering
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-ordering-data:/var/lib/postgresql/data
+
+  postgres-payment:
+    <<: *postgres-common
+    container_name: postgres-payment
+    environment:
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: payment
+      POSTGRES_DB: payment
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
+
+  postgres-warehouse:
+    <<: *postgres-common
+    container_name: postgres-warehouse
+    environment:
+      POSTGRES_USER: warehouse
+      POSTGRES_PASSWORD: warehouse
+      POSTGRES_DB: warehouse
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-warehouse-data:/var/lib/postgresql/data
+
+  # ===========================================================================
+  #  LOCALSTACK — local AWS emulation. Only S3 and SQS here.
+  #  Endpoint for everything: http://localhost:4566 (from the host) /
+  #                           http://localstack:4566 (from other containers).
+  # ===========================================================================
+  localstack:
+    image: localstack/localstack:3.8
+    container_name: localstack
+    restart: unless-stopped
+    ports:
+      - "4566:4566"            # a single gateway to all services
+    environment:
+      SERVICES: s3,sqs
+      DEBUG: "0"
+      AWS_DEFAULT_REGION: eu-central-1
+      # State persistence across restarts (Community: best-effort).
+      PERSISTENCE: "1"
+    volumes:
+      - localstack-data:/var/lib/localstack
+      # Docker socket — some LocalStack features spin up helper containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # *.sh / *.py scripts in this directory run AFTER LocalStack starts.
+      # Leave it empty — you create AWS resources with Terraform (Phase 2), not a script.
+      - ./infra/localstack/init:/etc/localstack/init/ready.d
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health | grep -q '\"s3\": \"available\"'"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  # ===========================================================================
+  #  APPLICATION SERVICES (Spring Boot 3 / Java 21)
+  #  The Java code is ready in services/<name>/src. The environment variables
+  #  (DB host, kafka:19092, S3 endpoint) are already filled in in the blocks
+  #  below — that's part of the "ready-made docker-compose".
+  #
+  #  Your job: write services/<name>/Dockerfile (see docs/GUIDE-dockerfile.md),
+  #  then UNCOMMENT the matching block. Without a Dockerfile, `docker compose up`
+  #  will just bring up the infrastructure (Kafka + 3x Postgres + LocalStack + kafka-ui).
+  #
+  #  Inside containers: Kafka = kafka:19092, databases by host name, S3 = localstack:4566.
+  # ===========================================================================
+
+  # --- UNCOMMENT AFTER WRITING services/ordering-service/Dockerfile ----------
+  # ordering-service:
+  #   build:
+  #     context: ./services/ordering-service
+  #   container_name: ordering-service
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     SERVER_PORT: 8081
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-ordering:5432/ordering
+  #     SPRING_DATASOURCE_USERNAME: ordering
+  #     SPRING_DATASOURCE_PASSWORD: ordering
+  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+  #   depends_on:
+  #     postgres-ordering:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+
+  # --- UNCOMMENT AFTER WRITING services/payment-service/Dockerfile -----------
+  # payment-service:
+  #   build:
+  #     context: ./services/payment-service
+  #   container_name: payment-service
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8082:8082"
+  #   environment:
+  #     SERVER_PORT: 8082
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment
+  #     SPRING_DATASOURCE_USERNAME: payment
+  #     SPRING_DATASOURCE_PASSWORD: payment
+  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+  #     # AWS SDK v2 -> LocalStack:
+  #     AWS_ENDPOINT_URL: http://localstack:4566
+  #     AWS_REGION: eu-central-1
+  #     AWS_ACCESS_KEY_ID: test
+  #     AWS_SECRET_ACCESS_KEY: test
+  #     APP_S3_BUCKET: aws-infra-order-documents-local
+  #     # true = the service creates the bucket itself. Set to false once Terraform owns it (Phase 2).
+  #     APP_S3_AUTO_CREATE_BUCKET: "true"
+  #   depends_on:
+  #     postgres-payment:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #     localstack:
+  #       condition: service_healthy
+
+  # --- UNCOMMENT AFTER WRITING services/warehouse-service/Dockerfile ---------
+  # warehouse-service:
+  #   build:
+  #     context: ./services/warehouse-service
+  #   container_name: warehouse-service
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8083:8083"
+  #   environment:
+  #     SERVER_PORT: 8083
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-warehouse:5432/warehouse
+  #     SPRING_DATASOURCE_USERNAME: warehouse
+  #     SPRING_DATASOURCE_PASSWORD: warehouse
+  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+  #   depends_on:
+  #     postgres-warehouse:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+
+# -----------------------------------------------------------------------------
+#  Named volumes — data survives `docker compose down` (destroyed by `-v`).
+# -----------------------------------------------------------------------------
+volumes:
+  kafka-data:
+  postgres-ordering-data:
+  postgres-payment-data:
+  postgres-warehouse-data:
+  localstack-data:
+
+# -----------------------------------------------------------------------------
+#  Network: Compose creates a default bridge network "aws-infra-project_default".
+#  Containers address each other BY SERVICE NAME (Docker's built-in DNS).
+# -----------------------------------------------------------------------------
