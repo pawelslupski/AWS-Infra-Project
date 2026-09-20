@@ -177,24 +177,24 @@ services:
   # ===========================================================================
 
   # --- UNCOMMENT AFTER WRITING services/ordering-service/Dockerfile ----------
-  # ordering-service:
-  #   build:
-  #     context: ./services/ordering-service
-  #   container_name: ordering-service
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8081:8081"
-  #   environment:
-  #     SERVER_PORT: 8081
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-ordering:5432/ordering
-  #     SPRING_DATASOURCE_USERNAME: ordering
-  #     SPRING_DATASOURCE_PASSWORD: ordering
-  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
-  #   depends_on:
-  #     postgres-ordering:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
+  ordering-service:
+    build:
+      context: ./services/ordering-service
+    container_name: ordering-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-ordering:5432/ordering
+      SPRING_DATASOURCE_USERNAME: ordering
+      SPRING_DATASOURCE_PASSWORD: ordering
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    depends_on:
+      postgres-ordering:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   # --- UNCOMMENT AFTER WRITING services/payment-service/Dockerfile -----------
   # payment-service:

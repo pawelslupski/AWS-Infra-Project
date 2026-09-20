@@ -4,12 +4,12 @@ WORKDIR /workspace
 
 # first just pom.xml as it changes very rarely
 COPY pom.xml .
-# dowloads only dependencies (without any compilation as the /src does not exist yet)
-RUN mvn -B dependency:go-offline -U
+# dowloads only dependencies needed for that project (without any compilation as the /src does not exist yet)
+RUN mvn -B dependency:resolve-plugins dependency:resolve
 # if the code changes which is more frequent, the cache invalidation starts from here
 COPY src ./src
 # dependencies are already downloaded to the local .m2 repo
-RUN mvn -B package -DskipTests
+RUN mvn -B package -DskipTests -o
 # .jar layered for the cache optimization from least to most frequently changed
 RUN java -Djarmode=layertools -jar target/*.jar extract --destination extracted
 
@@ -33,13 +33,13 @@ COPY --from=build --chown=spring:spring /workspace/extracted/application/ ./
 
 USER spring
 
-EXPOSE 8080
+EXPOSE 8081
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
 
 # assumes existence of the actuator dependencies in mvn with the reasonable spring startup time
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health || exit 1
+    CMD curl -f http://localhost:8081/actuator/health || exit 1
 
 # it keeps java process still as PID 1 in order to retrieve SIGTERM correctly
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]

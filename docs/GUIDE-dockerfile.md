@@ -18,8 +18,17 @@ Build a **small, secure** OCI image that:
 - correctly reacts to `SIGTERM` (graceful shutdown on an ECS deploy),
 - exposes a health check at `/actuator/health`.
 
-Target image size: **~200-350 MB** (JRE ~180 MB + Spring dependencies + the app).
-If you end up with 700 MB+, you've left Maven/JDK in the image. Go back to multi-stage.
+Target image size depends on which runtime base you pick — both are acceptable, know the trade-off:
+- `eclipse-temurin:21-jre-jammy` (glibc, Ubuntu): realistically **~450-550 MB**. The official
+  image bakes `wget`/`gnupg`/`fontconfig`/`ca-certificates`/`tzdata`/`locales` into a layer used
+  to fetch and verify the JDK tarball, and that layer stays in the final image — it's not ~180 MB
+  in practice. Fine to accept if you want glibc compatibility and don't want to deal with musl.
+- `eclipse-temurin:21-jre-alpine` (musl, Alpine): **~200-350 MB** is achievable, since Alpine's
+  rootfs is a few MB and it skips that extra apt layer. Trade-off: musl libc instead of glibc,
+  `apk` instead of `apt-get`, `addgroup`/`adduser` (busybox) instead of `groupadd`/`useradd`.
+
+If you end up with 700 MB+ on either base, you've left Maven/JDK in the image (no multi-stage) —
+that's the real failure mode this target is meant to catch, not the glibc/musl difference above.
 
 ---
 
@@ -88,7 +97,7 @@ build-context hygiene). Take a look and understand why `target/`, `.git/`, `.ide
 # build
 docker build -t ordering-service:local ./services/ordering-service
 
-# size (target: < 350 MB)
+# size (target: < 350 MB on alpine, < 550 MB on jammy — see section 1)
 docker images ordering-service:local
 
 # layers — check that dependencies are separate from application
@@ -126,7 +135,7 @@ that's part of the "ready-made docker-compose". Your job is the `Dockerfile` + u
 - [ ] `ENTRYPOINT` in exec form (`["...","..."]`), with `exec java`.
 - [ ] `EXPOSE` = the service's actual port.
 - [ ] `HEALTHCHECK` with `--start-period` ≥ 30s.
-- [ ] `docker images` shows < 350 MB.
+- [ ] `docker images` shows < 350 MB (alpine base) or < 550 MB (jammy base) — see section 1.
 - [ ] `docker run` + `curl /actuator/health` = `{"status":"UP"}` (with a running DB/Kafka).
 
 ## 8. Common mistakes
