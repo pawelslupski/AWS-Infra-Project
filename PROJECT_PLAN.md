@@ -140,14 +140,14 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 - [ ] Read the `ordering-service` code (5 classes) — trace: request → JPA entity → `repository.save` → `kafka.send`.
 - [ ] Read `payment-service` — pay attention to `@KafkaListener`, `AwsS3Config` (LocalStack endpoint, `forcePathStyle`), `InvoiceStorage` (`putObject`).
 - [ ] Read `docs/GUIDE-dockerfile.md` in full (sections 1-4 + common mistakes).
-- [ ] **Write `services/ordering-service/Dockerfile` FROM SCRATCH** following the guide. Build it: `docker build -t ordering-service:local ./services/ordering-service`. Check its size (`docker images`) and layers (`docker history`).
-- [ ] Go through the checklist in section 7 of the guide. Fix whatever's off.
-- [ ] **Write `services/payment-service/Dockerfile`** (`ARG APP_PORT=8082`, `LABEL`). Build it.
-- [ ] **Write `services/warehouse-service/Dockerfile`** (`APP_PORT=8083`). This time from memory.
-- [ ] Uncomment the `ordering-service` / `payment-service` / `warehouse-service` blocks in `docker-compose.yml`.
-- [ ] `docker compose up --build`; wait until all services are `healthy`.
-- [ ] Run the end-to-end test from the "Runbook" section in `README.md`: `POST /orders` → check payment's logs → a file in S3 (`aws s3 ls`) → `GET /stock` on warehouse.
-- [ ] Look into the 3 databases via `psql`: the `orders`, `payments` (with `invoice_key`), `stock_items` tables.
+- [x] **Write `services/ordering-service/Dockerfile` FROM SCRATCH** following the guide. Build it: `docker build -t ordering-service:local ./services/ordering-service`. Check its size (`docker images`) and layers (`docker history`).
+- [x] Go through the checklist in section 7 of the guide. Fix whatever's off.
+- [x] **Write `services/payment-service/Dockerfile`** (`ARG APP_PORT=8082`, `LABEL`). Build it.
+- [x] **Write `services/warehouse-service/Dockerfile`** (`APP_PORT=8083`). This time from memory.
+- [x] Uncomment the `ordering-service` / `payment-service` / `warehouse-service` blocks in `docker-compose.yml`.
+- [x] `docker compose up --build`; wait until all services are `healthy`.
+- [x] Run the end-to-end test from the "Runbook" section in `README.md`: `POST /orders` → check payment's logs → a file in S3 (`aws s3 ls`) → `GET /stock` on warehouse.
+- [x] Look into the 3 databases via `psql`: the `orders`, `payments` (with `invoice_key`), `stock_items` tables.
 - [ ] **(optional)** add a validation / new field to `ordering`; watch `ddl-auto: update` in action.
 - [ ] **Checkpoint:** you can explain: image vs container, `build` vs `image`, `EXPOSE` vs `ports`, a named volume vs a bind mount, Compose's bridge network (DNS by service name), why `depends_on: condition: service_healthy`, why Kafka is `kafka:19092` inside a container but `localhost:9092` from the host.
 

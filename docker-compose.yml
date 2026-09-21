@@ -176,7 +176,6 @@ services:
   #  Inside containers: Kafka = kafka:19092, databases by host name, S3 = localstack:4566.
   # ===========================================================================
 
-  # --- UNCOMMENT AFTER WRITING services/ordering-service/Dockerfile ----------
   ordering-service:
     build:
       context: ./services/ordering-service
@@ -196,55 +195,53 @@ services:
       kafka:
         condition: service_healthy
 
-  # --- UNCOMMENT AFTER WRITING services/payment-service/Dockerfile -----------
-  # payment-service:
-  #   build:
-  #     context: ./services/payment-service
-  #   container_name: payment-service
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8082:8082"
-  #   environment:
-  #     SERVER_PORT: 8082
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment
-  #     SPRING_DATASOURCE_USERNAME: payment
-  #     SPRING_DATASOURCE_PASSWORD: payment
-  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
-  #     # AWS SDK v2 -> LocalStack:
-  #     AWS_ENDPOINT_URL: http://localstack:4566
-  #     AWS_REGION: eu-central-1
-  #     AWS_ACCESS_KEY_ID: test
-  #     AWS_SECRET_ACCESS_KEY: test
-  #     APP_S3_BUCKET: aws-infra-order-documents-local
-  #     # true = the service creates the bucket itself. Set to false once Terraform owns it (Phase 2).
-  #     APP_S3_AUTO_CREATE_BUCKET: "true"
-  #   depends_on:
-  #     postgres-payment:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #     localstack:
-  #       condition: service_healthy
+  payment-service:
+    build:
+      context: ./services/payment-service
+    container_name: payment-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment
+      SPRING_DATASOURCE_USERNAME: payment
+      SPRING_DATASOURCE_PASSWORD: payment
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      # AWS SDK v2 -> LocalStack:
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_REGION: eu-central-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      APP_S3_BUCKET: aws-infra-order-documents-local
+      # true = the service creates the bucket itself. Set to false once Terraform owns it (Phase 2).
+      APP_S3_AUTO_CREATE_BUCKET: "true"
+    depends_on:
+      postgres-payment:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
 
-  # --- UNCOMMENT AFTER WRITING services/warehouse-service/Dockerfile ---------
-  # warehouse-service:
-  #   build:
-  #     context: ./services/warehouse-service
-  #   container_name: warehouse-service
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8083:8083"
-  #   environment:
-  #     SERVER_PORT: 8083
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-warehouse:5432/warehouse
-  #     SPRING_DATASOURCE_USERNAME: warehouse
-  #     SPRING_DATASOURCE_PASSWORD: warehouse
-  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
-  #   depends_on:
-  #     postgres-warehouse:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
+  warehouse-service:
+    build:
+      context: ./services/warehouse-service
+    container_name: warehouse-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-warehouse:5432/warehouse
+      SPRING_DATASOURCE_USERNAME: warehouse
+      SPRING_DATASOURCE_PASSWORD: warehouse
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    depends_on:
+      postgres-warehouse:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
 # -----------------------------------------------------------------------------
 #  Named volumes — data survives `docker compose down` (destroyed by `-v`).

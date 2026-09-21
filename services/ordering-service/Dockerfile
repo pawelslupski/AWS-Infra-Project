@@ -17,6 +17,8 @@ RUN java -Djarmode=layertools -jar target/*.jar extract --destination extracted
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
+LABEL org.opencontainers.image.title="ordering-service"
+
 # curl for HEALTHCHECK needs, packet lists cleaned within the same layer
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
