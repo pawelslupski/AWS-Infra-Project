@@ -1,6 +1,6 @@
 # environment: localstack — TO BE WRITTEN (Phase 2)
 
-Full spec: [`../../../docs/GUIDE-terraform-localstack.md`](../../../docs/GUIDE-terraform-localstack.md) — sections 2, 5, 6.
+Full spec: [`../../../.ai/guides`](../../../.ai/guides/GUIDE-terraform-localstack.md) — sections 2, 5, 6.
 
 Files to create in this directory:
 

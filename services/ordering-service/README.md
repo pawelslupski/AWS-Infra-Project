@@ -26,7 +26,7 @@ The unit price is hardcoded (`9.99`) — a stub, this is about the flow, not pri
 
 ## Dockerfile — write it yourself
 
-Guide + checklist + common mistakes: [`../../docs/GUIDE-dockerfile.md`](../../docs/GUIDE-dockerfile.md).
+Guide + checklist + common mistakes: [`../../.ai/guides`](../../.ai/guides/GUIDE-dockerfile.md).
 
 Parameters for this service: port **8081**, `LABEL ...title="ordering-service"`.
 Start with this service — payment and warehouse will be nearly identical.

@@ -28,18 +28,19 @@ RUN apt-get update \
 RUN groupadd -g 1001 spring \
     && useradd -u 1001 -g spring -s /usr/sbin/nologin -M spring
 
-COPY --from=build --chown=spring:spring /workspace/extracted/dependencies/ ./
-COPY --from=build --chown=spring:spring /workspace/extracted/spring-boot-loader/ ./
-COPY --from=build --chown=spring:spring /workspace/extracted/snapshot-dependencies/ ./
-COPY --from=build --chown=spring:spring /workspace/extracted/application/ ./
+COPY --from=build --chown=1001:1001 /workspace/extracted/dependencies/ ./
+COPY --from=build --chown=1001:1001 /workspace/extracted/spring-boot-loader/ ./
+COPY --from=build --chown=1001:1001 /workspace/extracted/snapshot-dependencies/ ./
+COPY --from=build --chown=1001:1001 /workspace/extracted/application/ ./
 
-USER spring
+USER 1001:1001
 
 EXPOSE 8081
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
 
 # assumes existence of the actuator dependencies in mvn with the reasonable spring startup time
+# useful for local/docker-compose; in AWS ECS Fargate typically handled via task definition or ALB target group
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8081/actuator/health || exit 1
 

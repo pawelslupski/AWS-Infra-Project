@@ -2,7 +2,7 @@
 
 You write every `.tf` file. This document says what should be produced and what to watch out for.
 
-Goal of Phase 2: `terraform apply` in `terraform/environments/localstack/` creates an S3
+Goal of Phase 2: `terraform apply` in `../../terraform/environments/localstack` creates an S3
 bucket in LocalStack (and later an SQS queue), and `payment-service` stops creating the
 bucket itself (`APP_S3_AUTO_CREATE_BUCKET=false`) and takes its name from `terraform output`.
 
@@ -98,7 +98,7 @@ Model it on `s3-bucket`. It should support:
 
 - Call `module "order_documents_bucket"` with `source = "../../modules/s3-bucket"`,
   `bucket_name = "${var.project}-order-documents-${var.environment}"`, `versioning_enabled = true`.
-  **Important:** the name must match `APP_S3_BUCKET` in `docker-compose.yml`
+  **Important:** the name must match `APP_S3_BUCKET` in `../../docker-compose.yml`
   (`aws-infra-order-documents-local`), otherwise payment-service won't find the bucket.
 - Then: call `module "payment_events_queue"` from `modules/sqs-queue`.
 - Exercise: `for_each = toset(["ordering","payment","warehouse"])` — three buckets from one declaration.
@@ -133,14 +133,14 @@ terraform output                    # see the exported values
 terraform destroy                   # clean up; then apply again — understand idempotency
 ```
 
-After a successful `apply`: in `docker-compose.yml` set `APP_S3_AUTO_CREATE_BUCKET: "false"` for
+After a successful `apply`: in `../../docker-compose.yml` set `APP_S3_AUTO_CREATE_BUCKET: "false"` for
 `payment-service`, restart it, and confirm invoices still land in S3 (since Terraform now owns the bucket).
 
 ---
 
 ## 7. Checklist
 
-- [ ] `terraform init` succeeds; `.terraform.lock.hcl` exists (in `.gitignore`).
+- [ ] `terraform init` succeeds; `.terraform.lock.hcl` exists (in `../../.gitignore`).
 - [ ] `terraform validate` = `Success`.
 - [ ] `provider "aws"` has `endpoints`, `s3_use_path_style`, all `skip_*`, explicit `access_key/secret_key`.
 - [ ] The `s3-bucket` module does NOT contain a `provider` block.

@@ -30,7 +30,7 @@ Payment event consumer. **Java code is ready** (6 classes) — deliberately triv
 
 ## Dockerfile — write it yourself
 
-Guide + checklist + common mistakes: [`../../docs/GUIDE-dockerfile.md`](../../docs/GUIDE-dockerfile.md).
+Guide + checklist + common mistakes: [`../../.ai/guides`](../../.ai/guides/GUIDE-dockerfile.md).
 
 Parameters for this service: port **8083**, `LABEL ...title="warehouse-service"`.
 This service doesn't use S3 — the `Dockerfile` is identical to `ordering`'s apart from the port and label.

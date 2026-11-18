@@ -41,7 +41,7 @@ Kafka consumer + S3 integration. **Java code is ready** (8 classes) — delibera
 
 ## Dockerfile — write it yourself
 
-Guide + checklist + common mistakes: [`../../docs/GUIDE-dockerfile.md`](../../docs/GUIDE-dockerfile.md).
+Guide + checklist + common mistakes: [`../../.ai/guides`](../../.ai/guides/GUIDE-dockerfile.md).
 
 Parameters for this service: port **8082**, `LABEL ...title="payment-service"`.
 The `Dockerfile` is identical to `ordering-service`'s — the AWS SDK (S3) is just a Maven

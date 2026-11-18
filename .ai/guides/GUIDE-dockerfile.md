@@ -3,7 +3,7 @@
 You write the file. This document says **what** it should do and **why** — it's not a ready-made answer.
 Once you've written it, come back and go through the checklist at the end.
 
-Applies to: `services/ordering-service/`, `payment-service/`, `warehouse-service/`.
+Applies to: `../../services/ordering-service`, `payment-service/`, `warehouse-service/`.
 The Java code is ready; all that's missing is the `Dockerfile` (and an entry in `docker-compose.yml`).
 
 ---
@@ -87,7 +87,7 @@ Write ordering first, then do payment and warehouse from memory; `diff` them to 
 ## 4. `.dockerignore`
 
 Already present in every service directory (ready-made — it's not the learning topic, just
-build-context hygiene). Take a look and understand why `target/`, `.git/`, `.idea/` are there.
+build-context hygiene). Take a look and understand why `target/`, `.git/`, `../../.idea` are there.
 
 ---
 
@@ -107,9 +107,9 @@ docker history ordering-service:local
 docker run --rm -p 8081:8081 ordering-service:local
 ```
 
-## 6. Wiring into `docker-compose.yml`
+## 6. Wiring into `../../docker-compose.yml`
 
-In `docker-compose.yml` the `ordering-service` / `payment-service` / `warehouse-service` blocks
+In `../../docker-compose.yml` the `ordering-service` / `payment-service` / `warehouse-service` blocks
 are **commented out**. Once you've built the image, uncomment the right block and:
 
 ```bash

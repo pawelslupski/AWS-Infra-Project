@@ -1,6 +1,6 @@
 # module: s3-bucket — TO BE WRITTEN (Phase 2, first module)
 
-Full spec: [`../../../docs/GUIDE-terraform-localstack.md`](../../../docs/GUIDE-terraform-localstack.md) — section 3.
+Full spec: [`../../../.ai/guides`](../../../.ai/guides/GUIDE-terraform-localstack.md) — section 3.
 
 Files to create in this directory:
 

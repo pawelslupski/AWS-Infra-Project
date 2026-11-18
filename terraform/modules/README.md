@@ -1,6 +1,6 @@
 # terraform/modules
 
-**You write every module yourself.** Guide + specs: [`../../docs/GUIDE-terraform-localstack.md`](../../docs/GUIDE-terraform-localstack.md).
+**You write every module yourself.** Guide + specs: [`../../.ai/guides`](../../.ai/guides/GUIDE-terraform-localstack.md).
 
 | Module | Phase | Target contents |
 |---|---|---|

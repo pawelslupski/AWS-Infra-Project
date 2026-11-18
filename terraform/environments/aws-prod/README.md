@@ -7,6 +7,6 @@ Same structure as `../localstack`, but:
 - `main.tf` — module calls: `networking` → `ecr` → `ecs-service` (+ `s3-bucket`, `sqs-queue`).
 - `variables.tf` / `terraform.tfvars` — region, CIDRs, task sizes, `desired_count`, passwords from SSM.
 
-Task checklist: see `PROJECT_PLAN.md` → PHASE 3.
+Task checklist: see `../../../.ai/project_plan.md` → PHASE 3.
 
 > ⚠️ `terraform destroy` after every learning session — cost control (NAT GW, ALB, RDS are billed hourly).

@@ -7,13 +7,13 @@
 >
 > **Ready-made (you don't need to deal with this):**
 > - this plan + the directory structure,
-> - `docker-compose.yml` — **local infrastructure** (Kafka KRaft, 3× PostgreSQL, LocalStack, kafka-ui). The application service blocks are in the file, but **commented out** — you'll uncomment them after writing their `Dockerfile`,
+> - `../docker-compose.yml` — **local infrastructure** (Kafka KRaft, 3× PostgreSQL, LocalStack, kafka-ui). The application service blocks are in the file, but **commented out** — you'll uncomment them after writing their `Dockerfile`,
 > - **minimal, REAL logic for 3 microservices** (Java/Spring/Kafka/S3, 5-8 classes per service). The code is deliberately trivial from a business standpoint — its only job is to prove that your infrastructure correctly wires together the database, Kafka, and the cloud.
 >
 > **Your job — the ENTIRE infrastructure, with me as the teacher (specs + checklists + review):**
-> - the `Dockerfile` for each of the 3 services (Phase 1) — see `docs/GUIDE-dockerfile.md`,
-> - all of Terraform: the `s3-bucket`, `sqs-queue`, `networking`, `ecr`, `ecs-service` modules + the `localstack` and `aws-prod` environments (Phases 2-3) — see `docs/GUIDE-terraform-localstack.md`,
-> - wiring the services into `docker-compose.yml`, deploying to AWS Fargate.
+> - the `Dockerfile` for each of the 3 services (Phase 1) — see `guides`,
+> - all of Terraform: the `s3-bucket`, `sqs-queue`, `networking`, `ecr`, `ecs-service` modules + the `localstack` and `aws-prod` environments (Phases 2-3) — see `guides`,
+> - wiring the services into `../docker-compose.yml`, deploying to AWS Fargate.
 >
 > Rule: you get **what** needs to be built and **why** from me, not a ready-made answer. You write the file, I review it.
 
@@ -133,20 +133,20 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 `POST /orders` triggers the chain Kafka → payment → invoice in S3 → warehouse reservation.
 
 - [ ] Install and verify: `docker --version`, `docker compose version`, `terraform -version`, `aws --version` (CLI v2), `java -version` (21).
-- [ ] Read `docker-compose.yml` line by line; write down what each section is responsible for.
+- [ ] Read `../docker-compose.yml` line by line; write down what each section is responsible for.
 - [ ] Start LocalStack on its own: `docker compose up localstack`; check `curl http://localhost:4566/_localstack/health`.
 - [ ] Start just the databases; `psql` into each one (ports 5432/5433/5434); confirm data isolation.
 - [ ] Start Kafka (KRaft); in `kafka-ui` (`:8080`) look at the list of topics.
 - [ ] Read the `ordering-service` code (5 classes) — trace: request → JPA entity → `repository.save` → `kafka.send`.
 - [ ] Read `payment-service` — pay attention to `@KafkaListener`, `AwsS3Config` (LocalStack endpoint, `forcePathStyle`), `InvoiceStorage` (`putObject`).
-- [ ] Read `docs/GUIDE-dockerfile.md` in full (sections 1-4 + common mistakes).
-- [x] **Write `services/ordering-service/Dockerfile` FROM SCRATCH** following the guide. Build it: `docker build -t ordering-service:local ./services/ordering-service`. Check its size (`docker images`) and layers (`docker history`).
+- [ ] Read `guides` in full (sections 1-4 + common mistakes).
+- [x] **Write `../services/ordering-service/Dockerfile` FROM SCRATCH** following the guide. Build it: `docker build -t ordering-service:local ./services/ordering-service`. Check its size (`docker images`) and layers (`docker history`).
 - [x] Go through the checklist in section 7 of the guide. Fix whatever's off.
-- [x] **Write `services/payment-service/Dockerfile`** (`ARG APP_PORT=8082`, `LABEL`). Build it.
-- [x] **Write `services/warehouse-service/Dockerfile`** (`APP_PORT=8083`). This time from memory.
-- [x] Uncomment the `ordering-service` / `payment-service` / `warehouse-service` blocks in `docker-compose.yml`.
+- [x] **Write `../services/payment-service/Dockerfile`** (`ARG APP_PORT=8082`, `LABEL`). Build it.
+- [x] **Write `../services/warehouse-service/Dockerfile`** (`APP_PORT=8083`). This time from memory.
+- [x] Uncomment the `ordering-service` / `payment-service` / `warehouse-service` blocks in `../docker-compose.yml`.
 - [x] `docker compose up --build`; wait until all services are `healthy`.
-- [x] Run the end-to-end test from the "Runbook" section in `README.md`: `POST /orders` → check payment's logs → a file in S3 (`aws s3 ls`) → `GET /stock` on warehouse.
+- [x] Run the end-to-end test from the "Runbook" section in `../readme.md`: `POST /orders` → check payment's logs → a file in S3 (`aws s3 ls`) → `GET /stock` on warehouse.
 - [x] Look into the 3 databases via `psql`: the `orders`, `payments` (with `invoice_key`), `stock_items` tables.
 - [ ] **(optional)** add a validation / new field to `ordering`; watch `ddl-auto: update` in action.
 - [ ] **Checkpoint:** you can explain: image vs container, `build` vs `image`, `EXPOSE` vs `ports`, a named volume vs a bind mount, Compose's bridge network (DNS by service name), why `depends_on: condition: service_healthy`, why Kafka is `kafka:19092` inside a container but `localhost:9092` from the host.
@@ -157,14 +157,14 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 queue in LocalStack; the services stop creating the bucket themselves and take its name from
 `terraform output`.
 
-- [ ] Read `docs/GUIDE-terraform-localstack.md` in full.
+- [ ] Read `guides` in full.
 - [ ] **Write `environments/localstack/providers.tf`** — the `aws` provider for LocalStack (guide section 2: `endpoints`, `s3_use_path_style`, `skip_*`, explicit keys). This is the heart of the LocalStack vs AWS difference.
-- [ ] **Write the `terraform/modules/s3-bucket/` module** (`main/variables/outputs/versions.tf` — guide section 3) with `force_destroy = true` — without it, `terraform destroy` will refuse to remove the bucket if it holds objects (and Phase 1 uploads invoices there). You'll reuse this same module in `aws-prod`, where the "cheap and disposable" rule applies even more.
+- [ ] **Write the `../terraform/modules/s3-bucket` module** (`main/variables/outputs/versions.tf` — guide section 3) with `force_destroy = true` — without it, `terraform destroy` will refuse to remove the bucket if it holds objects (and Phase 1 uploads invoices there). You'll reuse this same module in `aws-prod`, where the "cheap and disposable" rule applies even more.
 - [ ] **Write `environments/localstack/main.tf`** — call the module, with `bucket_name` == `APP_S3_BUCKET` from compose (`aws-infra-order-documents-local`).
 - [ ] `terraform init` → `fmt` → `validate` → `plan` → `apply`; verify with `aws --endpoint-url=http://localhost:4566 s3 ls`.
 - [ ] `terraform destroy`; then `apply` again — understand idempotency and the state file (`terraform.tfstate`).
 - [ ] In `payment-service`, set `APP_S3_AUTO_CREATE_BUCKET=false` (compose) — now only Terraform manages the bucket. Restart payment, confirm it's still uploading invoices.
-- [ ] **Write the `terraform/modules/sqs-queue/` module** (a queue + optional DLQ + `redrive_policy` — guide section 4), following the same pattern as `s3-bucket`.
+- [ ] **Write the `../terraform/modules/sqs-queue` module** (a queue + optional DLQ + `redrive_policy` — guide section 4), following the same pattern as `s3-bucket`.
 - [ ] In `environments/localstack/main.tf`, call both modules; export `outputs` (bucket name, queue URL).
 - [ ] Inject the `outputs` into the services via environment variables in Compose (or `terraform output -json` → `.env`).
 - [ ] In `ordering-service`, after receiving `PaymentCompleted` from Kafka, send an `OrderConfirmationEmail { orderId, email }` message to SQS (`SqsClient`, model it on `AwsS3Config`). Add a simple consumer in the same service (`@SqsListener` or polling `ReceiveMessage` in a loop/`@Scheduled`) that "sends the email" — for learning purposes `log.info(...)` is enough, no real SMTP. Rule: Kafka drives the saga between services (it must get through), SQS is an asynchronous, non-critical side effect (the email can fail/be late without affecting the order) — hence why DLQ/`redrive_policy` make sense here, not on Kafka.
@@ -206,10 +206,10 @@ queue in LocalStack; the services stop creating the bucket themselves and take i
 
 - [ ] AWS account: an IAM user with MFA, `aws configure` (a profile), a **billing alarm** for a few USD.
 - [ ] Set `default_tags { tags = { Project = "aws-infra-learning" } }` on the `aws` provider — every resource tagged from the first `apply`, making it easier to later find an "orphan" left by a failed `destroy`.
-- [ ] Write the `terraform/modules/networking/` module: VPC, 2× public subnet, 2× private, IGW, **1× NAT Gateway** (not 2 — a one-off environment doesn't need NAT HA; route both private subnets to the same gateway), route tables.
-- [ ] Write the `terraform/modules/ecr/` module: an image repository + `force_delete = true` (otherwise `destroy` won't remove a repo that still has images) + a `lifecycle_policy` (keep the last N tags).
+- [ ] Write the `../terraform/modules/networking` module: VPC, 2× public subnet, 2× private, IGW, **1× NAT Gateway** (not 2 — a one-off environment doesn't need NAT HA; route both private subnets to the same gateway), route tables.
+- [ ] Write the `../terraform/modules/ecr` module: an image repository + `force_delete = true` (otherwise `destroy` won't remove a repo that still has images) + a `lifecycle_policy` (keep the last N tags).
 - [ ] Build and push the image: `aws ecr get-login-password | docker login ...`, `docker build`, `docker push`.
-- [ ] Write the `terraform/modules/ecs-service/` module: a cluster (or a shared one), a task definition (Fargate, CPU/RAM **256/512** — the cheapest pair for a short test, `containerDefinitions`, logs to CloudWatch), a service, a target group, a listener rule on the ALB.
+- [ ] Write the `../terraform/modules/ecs-service` module: a cluster (or a shared one), a task definition (Fargate, CPU/RAM **256/512** — the cheapest pair for a short test, `containerDefinitions`, logs to CloudWatch), a service, a target group, a listener rule on the ALB.
 - [ ] Split the roles: the **task execution role** (pulling from ECR, writing logs) vs the **task role** (the application's access to S3/SQS).
 - [ ] Security Groups: ALB SG (443/80 from the internet) → ECS SG (the container port, only from the ALB SG) → RDS SG (5432, only from the ECS SG).
 - [ ] Create an RDS PostgreSQL instance (`db.t4g.micro`, single-AZ, in the data subnets; `skip_final_snapshot = true`, `deletion_protection = false` — otherwise `destroy` will either stop or leave behind a snapshot that keeps costing money); connect `ordering-service` to it.
@@ -228,7 +228,7 @@ queue in LocalStack; the services stop creating the bucket themselves and take i
 - [ ] Change the Kafka config in `ordering/payment/warehouse-service` from `bootstrap-servers: kafka:19092` to the MSK broker endpoints (`terraform output`); enable SASL/IAM auth instead of plaintext.
 - [ ] S3 and SQS: swap the LocalStack endpoint for the real regional one (or just remove the endpoint override — the SDK will default to the right region); confirm the `task role` from Phase 3a is sufficient (the same `s3:PutObject`, `sqs:SendMessage/ReceiveMessage` actions).
 - [ ] VPC Endpoints (Gateway for S3, Interface for SQS/ECR/logs) — traffic that never leaves the internet; compare the cost against NAT. (MSK has no VPC Endpoint — the brokers sit directly in your subnets, hence the separate SG above.)
-- [ ] Run **exactly the same end-to-end test as in Phase 1** (the "Runbook" from `README.md`), this time through the ALB's public DNS: `POST /orders` → payment's log → invoice in S3 (`aws s3 ls`, no `--endpoint-url`) → `GET /stock` on warehouse → the email-log in `ordering-service` (CloudWatch Logs) after `OrderConfirmationEmail` from SQS.
+- [ ] Run **exactly the same end-to-end test as in Phase 1** (the "Runbook" from `../readme.md`), this time through the ALB's public DNS: `POST /orders` → payment's log → invoice in S3 (`aws s3 ls`, no `--endpoint-url`) → `GET /stock` on warehouse → the email-log in `ordering-service` (CloudWatch Logs) after `OrderConfirmationEmail` from SQS.
 - [ ] Check in CloudWatch Logs that all 3 services are really talking to each other through MSK (no `TimeoutException`/`Disconnected` errors on startup).
 - [ ] **`terraform destroy` the entire `environments/aws-prod`** once the test passes — MSK and RDS cost money non-stop, don't leave them running. MSK (even Serverless) is created and destroyed more slowly than the rest of the stack (on the order of several to a dozen-plus minutes) — factor that into your session's time budget, and don't create/destroy it between every single test run — only once per session: `apply` → several test passes on the same environment → `destroy` at the end.
 - [ ] **Checkpoint 3b (the project's finale):** you can draw the full AWS architecture from memory (VPC, 3× Fargate, RDS, MSK, S3, SQS, ALB, SG) and explain what changed compared to the local version (LocalStack → real S3/SQS, Compose's Kafka → MSK, `psql` on the host → RDS in a data subnet), and what stayed the same (the application code, the `s3-bucket`/`sqs-queue` modules, the task role).

@@ -2,7 +2,7 @@
 
 Learning project (2-3 months): **Infrastructure · Docker · Terraform · AWS ECS/Fargate · LocalStack**.
 
-**Start with [`PROJECT_PLAN.md`](./PROJECT_PLAN.md).**
+**Start with [`.ai/project_plan.md`](.ai/project_plan.md).**
 
 ## Division of work
 
@@ -10,18 +10,18 @@ Learning project (2-3 months): **Infrastructure · Docker · Terraform · AWS EC
 
 | Element | What it is |
 |---|---|
-| `PROJECT_PLAN.md` | roadmap, 2 diagrams, a networking/cloud concepts cheat sheet |
+| `.ai/project_plan.md` | roadmap, 2 diagrams, a networking/cloud concepts cheat sheet |
 | `docker-compose.yml` | **local infrastructure**: Kafka (KRaft) + kafka-ui + 3× PostgreSQL + LocalStack. The application service blocks are in the file, but **commented out** |
 | `services/*/src/` + `pom.xml` | minimal, REAL logic for 3 microservices (Spring Boot 3 / Java 21 / Kafka / S3), 5-8 classes per service |
 | `services/*/.dockerignore` | build-context hygiene (not the learning topic) |
-| `docs/GUIDE-*.md` | guides: what to write and why, checklists, common mistakes |
+| `guides` | guides: what to write and why, checklists, common mistakes |
 
 **You write it yourself — the ENTIRE infrastructure**, with me (Claude) as the teacher: spec + checklist + review:
 
 | Artifact | Phase | Guide |
 |---|---|---|
-| `services/*/Dockerfile` (×3) | 1 | [`docs/GUIDE-dockerfile.md`](./docs/GUIDE-dockerfile.md) |
-| `terraform/modules/s3-bucket/` + `environments/localstack/` | 2 | [`docs/GUIDE-terraform-localstack.md`](./docs/GUIDE-terraform-localstack.md) |
+| `services/*/Dockerfile` (×3) | 1 | [`guides`](.ai/guides/GUIDE-dockerfile.md) |
+| `terraform/modules/s3-bucket/` + `environments/localstack/` | 2 | [`guides`](.ai/guides/GUIDE-terraform-localstack.md) |
 | `terraform/modules/sqs-queue/` | 2 | same |
 | `terraform/modules/{networking,ecr,ecs-service}/` + `environments/aws-prod/` | 3 | (guide to follow in Phase 3) |
 | wiring the services into `docker-compose.yml`, deploying to Fargate | 1 / 3 | — |
