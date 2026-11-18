@@ -1,0 +1,67 @@
+# =============================================================================
+#  .aiignore - Patterns ignored by AI tools / assistants
+# =============================================================================
+
+# --- Secrets & Credentials (Security & Privacy) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*secret*
+*credential*
+*token*
+
+# --- Terraform (State files may contain raw passwords/secrets) ---
+**/.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+*.tfvars.local
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# --- Java & Build Artifacts (Token waste / binaries) ---
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+**/build/
+
+# --- Logs & Dumps ---
+*.log
+logs/
+*.dump
+*.sql
+*.db
+*.sqlite
+
+# --- LocalStack & Docker Data / Volumes ---
+.localstack/
+volume/
+localstack-data/
+kafka-data/
+postgres-*-data/
+
+# --- Version Control & IDE Metadata ---
+.git/
+.idea/
+.vscode/
+*.iml
+
+# --- System & Temporary Files ---
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+tmp/

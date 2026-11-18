@@ -34,3 +34,4 @@ volume/
 
 # --- System ---
 .DS_Store
+/downloads/
