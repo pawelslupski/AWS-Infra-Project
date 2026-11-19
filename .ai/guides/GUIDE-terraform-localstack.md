@@ -53,7 +53,7 @@ The `provider "aws"` block must:
 
 Also in `providers.tf` (or a separate `versions.tf`):
 - `terraform { required_version = ">= 1.6" }`
-- `required_providers { aws = { source = "hashicorp/aws", version = ">= 5.0" } }`
+- `required_providers { aws = { source = "hashicorp/aws", version = "~> 6.0" } }`
 - `backend "local" {}` to start (state in a file). Later in Phase 2 you'll switch to
   `backend "s3"` pointing at a bucket inside LocalStack itself — good practice for state bootstrapping.
 
@@ -65,7 +65,7 @@ the above — no `endpoints`, no `skip_*`, no `s3_use_path_style`, no explicit k
 
 ## 3. Module `modules/s3-bucket/`
 
-**`main.tf`** — resources (the AWS 5.x provider splits bucket config into separate resources):
+**`main.tf`** — resources (the AWS provider (5.x/6.x) splits bucket config into separate resources):
 - `aws_s3_bucket` — the bucket itself, `bucket = var.bucket_name`, `tags` = merge of defaults + `var.tags`.
 - `aws_s3_bucket_versioning` — driven by `var.versioning_enabled` (bool → `"Enabled"`/`"Disabled"`).
 - `aws_s3_bucket_server_side_encryption_configuration` — `AES256` (a no-op on LocalStack, but

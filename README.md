@@ -4,19 +4,19 @@ Learning project (2-3 months): **Infrastructure · Docker · Terraform · AWS EC
 
 **Start with [`.ai/project_plan.md`](.ai/project_plan.md).**
 
-## Division of work
+## Scope
 
-**You get ready-made** (so you can focus on infra, not Java):
+**Starting point** (so the focus stays on infra, not Java):
 
 | Element | What it is |
 |---|---|
 | `.ai/project_plan.md` | roadmap, 2 diagrams, a networking/cloud concepts cheat sheet |
-| `docker-compose.yml` | **local infrastructure**: Kafka (KRaft) + kafka-ui + 3× PostgreSQL + LocalStack. The application service blocks are in the file, but **commented out** |
-| `services/*/src/` + `pom.xml` | minimal, REAL logic for 3 microservices (Spring Boot 3 / Java 21 / Kafka / S3), 5-8 classes per service |
+| `docker-compose.yml` | **local infrastructure**: Kafka (KRaft) + kafka-ui + 3× PostgreSQL + LocalStack, plus the 3 application services |
+| `services/*/src/` + `pom.xml` | minimal, real logic for 3 microservices (Spring Boot 3 / Java 21 / Kafka / S3), 5-8 classes per service |
 | `services/*/.dockerignore` | build-context hygiene (not the learning topic) |
-| `guides` | guides: what to write and why, checklists, common mistakes |
+| `.ai/guides` | what to write and why, checklists, common mistakes |
 
-**You write it yourself — the ENTIRE infrastructure**, with me (Claude) as the teacher: spec + checklist + review:
+**What is trained — the ENTIRE infrastructure, written by hand:**
 
 | Artifact | Phase | Guide |
 |---|---|---|
@@ -27,10 +27,10 @@ Learning project (2-3 months): **Infrastructure · Docker · Terraform · AWS EC
 | wiring the services into `docker-compose.yml`, deploying to Fargate | 1 / 3 | — |
 
 The Java code is deliberately trivial from a business standpoint — it only serves as a "living
-organism" for checking whether your infrastructure correctly wires together the database, Kafka,
+organism" for checking whether the infrastructure correctly wires together the database, Kafka,
 and the cloud.
 
-## Event flow (what the ready-made code does)
+## Event flow (what the application code does)
 
 ```
 POST /orders ──▶ ordering ──(orders.created)──▶ payment ──▶ PostgreSQL(payments)

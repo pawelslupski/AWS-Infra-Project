@@ -3,19 +3,43 @@
 > **Goal:** master Infrastructure, Terraform, Docker (writing Dockerfiles),
 > AWS ECS/Fargate, and LocalStack from scratch, with your own hands.
 >
-> **Division of work:**
+> **Starting point (already in the repo):**
+> - the directory structure,
+> - `../docker-compose.yml` — local infrastructure (Kafka KRaft, 3× PostgreSQL, LocalStack, kafka-ui),
+> - minimal application logic for 3 microservices (Java/Spring/Kafka/S3, 5-8 classes each). Business logic is deliberately trivial — its only job is to prove that the infrastructure correctly wires together the database, Kafka, and the cloud.
 >
-> **Ready-made (you don't need to deal with this):**
-> - this plan + the directory structure,
-> - `../docker-compose.yml` — **local infrastructure** (Kafka KRaft, 3× PostgreSQL, LocalStack, kafka-ui). The application service blocks are in the file, but **commented out** — you'll uncomment them after writing their `Dockerfile`,
-> - **minimal, REAL logic for 3 microservices** (Java/Spring/Kafka/S3, 5-8 classes per service). The code is deliberately trivial from a business standpoint — its only job is to prove that your infrastructure correctly wires together the database, Kafka, and the cloud.
+> **What is being trained — all infrastructure, written by hand:**
+> - Docker: a production-grade `Dockerfile` per service, wiring services into Compose,
+> - Terraform: `s3-bucket`, `sqs-queue`, `networking`, `ecr`, `ecs-service`, `msk` modules + the `localstack` and `aws-prod` environments,
+> - AWS: ECR, ECS/Fargate, ALB, VPC/SG, RDS, MSK, IAM roles, Secrets, CloudWatch.
 >
-> **Your job — the ENTIRE infrastructure, with me as the teacher (specs + checklists + review):**
-> - the `Dockerfile` for each of the 3 services (Phase 1) — see `guides`,
-> - all of Terraform: the `s3-bucket`, `sqs-queue`, `networking`, `ecr`, `ecs-service` modules + the `localstack` and `aws-prod` environments (Phases 2-3) — see `guides`,
-> - wiring the services into `../docker-compose.yml`, deploying to AWS Fargate.
->
-> Rule: you get **what** needs to be built and **why** from me, not a ready-made answer. You write the file, I review it.
+> Rule: every infrastructure file is written from scratch; `.ai/guides` give the spec (what and why), not the answer.
+
+---
+
+## 0. Progress (verified against the repo — 2026-11-19)
+
+**Phase 1 ≈ 90% · Phase 2 in progress (`providers.tf` done) · Phase 3 not started.**
+
+| Skill | State |
+|---|---|
+| Dockerfile: multi-stage, layer cache, layered jar, non-root numeric UID, HEALTHCHECK, `exec` as PID 1 | ✅ 3 services |
+| Docker Compose: healthchecks, `depends_on: service_healthy`, networks/volumes, E2E run | ✅ |
+| Terraform provider for LocalStack (`endpoints`, path-style, `skip_*`) | ✅ `environments/localstack/providers.tf` |
+| Terraform modules (`s3-bucket`, `sqs-queue`) | 🔨 started |
+| Terraform environments wiring, state backend, `for_each`, tfvars | ⬜ |
+| SQS integration in app + Compose | ⬜ |
+| AWS networking / ECR / ECS-Fargate / RDS / MSK | ⬜ |
+
+**Gaps to close along the way**
+- `ordering-service` in Compose has no `AWS_*` env or `localstack` dependency — needed once SQS is introduced.
+- `payment-service` still has `APP_S3_AUTO_CREATE_BUCKET: "true"` — switch to `false` once Terraform owns the bucket.
+- `.terraform.lock.hcl` must be **committed** (pins provider versions); provider constraint decided: `~> 6.0`.
+- Terraform `providers.tf` still has hardcoded region/endpoint — use variables.
+- Host `java` is 27 (builds run in Docker on 21, so harmless).
+- Phase 1 Checkpoint (explaining the concepts) is self-assessed — tick it yourself.
+
+**▶ NEXT:** finish `environments/localstack` (variables wired into the provider), write `modules/s3-bucket`, then `main.tf` → `terraform apply`.
 
 ---
 
@@ -132,21 +156,21 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done
 **End result:** `docker compose up --build` starts 3 services + 3 databases + Kafka + LocalStack;
 `POST /orders` triggers the chain Kafka → payment → invoice in S3 → warehouse reservation.
 
-- [ ] Install and verify: `docker --version`, `docker compose version`, `terraform -version`, `aws --version` (CLI v2), `java -version` (21).
-- [ ] Read `../docker-compose.yml` line by line; write down what each section is responsible for.
-- [ ] Start LocalStack on its own: `docker compose up localstack`; check `curl http://localhost:4566/_localstack/health`.
-- [ ] Start just the databases; `psql` into each one (ports 5432/5433/5434); confirm data isolation.
-- [ ] Start Kafka (KRaft); in `kafka-ui` (`:8080`) look at the list of topics.
-- [ ] Read the `ordering-service` code (5 classes) — trace: request → JPA entity → `repository.save` → `kafka.send`.
-- [ ] Read `payment-service` — pay attention to `@KafkaListener`, `AwsS3Config` (LocalStack endpoint, `forcePathStyle`), `InvoiceStorage` (`putObject`).
-- [ ] Read `guides` in full (sections 1-4 + common mistakes).
+- [x] Install and verify (host java is 27 — builds run in Docker on 21, so OK): `docker --version`, `docker compose version`, `terraform -version`, `aws --version` (CLI v2), `java -version` (21).
+- [x] Read `../docker-compose.yml` line by line; write down what each section is responsible for.
+- [x] Start LocalStack on its own: `docker compose up localstack`; check `curl http://localhost:4566/_localstack/health`.
+- [x] Start just the databases; `psql` into each one (ports 5432/5433/5434); confirm data isolation.
+- [x] Start Kafka (KRaft); in `kafka-ui` (`:8080`) look at the list of topics.
+- [x] Read the `ordering-service` code (5 classes) — trace: request → JPA entity → `repository.save` → `kafka.send`.
+- [x] Read `payment-service` — pay attention to `@KafkaListener`, `AwsS3Config` (LocalStack endpoint, `forcePathStyle`), `InvoiceStorage` (`putObject`).
+- [x] Read `guides` in full (sections 1-4 + common mistakes).
 - [x] **Write `../services/ordering-service/Dockerfile` FROM SCRATCH** following the guide. Build it: `docker build -t ordering-service:local ./services/ordering-service`. Check its size (`docker images`) and layers (`docker history`).
 - [x] Go through the checklist in section 7 of the guide. Fix whatever's off.
 - [x] **Write `../services/payment-service/Dockerfile`** (`ARG APP_PORT=8082`, `LABEL`). Build it.
 - [x] **Write `../services/warehouse-service/Dockerfile`** (`APP_PORT=8083`). This time from memory.
 - [x] Uncomment the `ordering-service` / `payment-service` / `warehouse-service` blocks in `../docker-compose.yml`.
 - [x] `docker compose up --build`; wait until all services are `healthy`.
-- [x] Run the end-to-end test from the "Runbook" section in `../readme.md`: `POST /orders` → check payment's logs → a file in S3 (`aws s3 ls`) → `GET /stock` on warehouse.
+- [x] Run the end-to-end test from the "Runbook" section in `../README.md`: `POST /orders` → check payment's logs → a file in S3 (`aws s3 ls`) → `GET /stock` on warehouse.
 - [x] Look into the 3 databases via `psql`: the `orders`, `payments` (with `invoice_key`), `stock_items` tables.
 - [ ] **(optional)** add a validation / new field to `ordering`; watch `ddl-auto: update` in action.
 - [ ] **Checkpoint:** you can explain: image vs container, `build` vs `image`, `EXPOSE` vs `ports`, a named volume vs a bind mount, Compose's bridge network (DNS by service name), why `depends_on: condition: service_healthy`, why Kafka is `kafka:19092` inside a container but `localhost:9092` from the host.
@@ -228,7 +252,7 @@ queue in LocalStack; the services stop creating the bucket themselves and take i
 - [ ] Change the Kafka config in `ordering/payment/warehouse-service` from `bootstrap-servers: kafka:19092` to the MSK broker endpoints (`terraform output`); enable SASL/IAM auth instead of plaintext.
 - [ ] S3 and SQS: swap the LocalStack endpoint for the real regional one (or just remove the endpoint override — the SDK will default to the right region); confirm the `task role` from Phase 3a is sufficient (the same `s3:PutObject`, `sqs:SendMessage/ReceiveMessage` actions).
 - [ ] VPC Endpoints (Gateway for S3, Interface for SQS/ECR/logs) — traffic that never leaves the internet; compare the cost against NAT. (MSK has no VPC Endpoint — the brokers sit directly in your subnets, hence the separate SG above.)
-- [ ] Run **exactly the same end-to-end test as in Phase 1** (the "Runbook" from `../readme.md`), this time through the ALB's public DNS: `POST /orders` → payment's log → invoice in S3 (`aws s3 ls`, no `--endpoint-url`) → `GET /stock` on warehouse → the email-log in `ordering-service` (CloudWatch Logs) after `OrderConfirmationEmail` from SQS.
+- [ ] Run **exactly the same end-to-end test as in Phase 1** (the "Runbook" from `../README.md`), this time through the ALB's public DNS: `POST /orders` → payment's log → invoice in S3 (`aws s3 ls`, no `--endpoint-url`) → `GET /stock` on warehouse → the email-log in `ordering-service` (CloudWatch Logs) after `OrderConfirmationEmail` from SQS.
 - [ ] Check in CloudWatch Logs that all 3 services are really talking to each other through MSK (no `TimeoutException`/`Disconnected` errors on startup).
 - [ ] **`terraform destroy` the entire `environments/aws-prod`** once the test passes — MSK and RDS cost money non-stop, don't leave them running. MSK (even Serverless) is created and destroyed more slowly than the rest of the stack (on the order of several to a dozen-plus minutes) — factor that into your session's time budget, and don't create/destroy it between every single test run — only once per session: `apply` → several test passes on the same environment → `destroy` at the end.
 - [ ] **Checkpoint 3b (the project's finale):** you can draw the full AWS architecture from memory (VPC, 3× Fargate, RDS, MSK, S3, SQS, ALB, SG) and explain what changed compared to the local version (LocalStack → real S3/SQS, Compose's Kafka → MSK, `psql` on the host → RDS in a data subnet), and what stayed the same (the application code, the `s3-bucket`/`sqs-queue` modules, the task role).

@@ -1,6 +1,6 @@
 # Guide: writing a `Dockerfile` for a Spring Boot microservice, for ECS Fargate
 
-You write the file. This document says **what** it should do and **why** — it's not a ready-made answer.
+You write the file. This document says **what** it should do and **why**.
 Once you've written it, come back and go through the checklist at the end.
 
 Applies to: `../../services/ordering-service`, `payment-service/`, `warehouse-service/`.
@@ -86,8 +86,7 @@ Write ordering first, then do payment and warehouse from memory; `diff` them to 
 
 ## 4. `.dockerignore`
 
-Already present in every service directory (ready-made — it's not the learning topic, just
-build-context hygiene). Take a look and understand why `target/`, `.git/`, `../../.idea` are there.
+Present in every service directory (not the learning topic, just build-context hygiene). Take a look and understand why `target/`, `.git/`, `../../.idea` are there.
 
 ---
 
@@ -119,7 +118,7 @@ curl http://localhost:8081/actuator/health
 ```
 
 The environment variables (DB host, `kafka:19092`, S3 endpoint) are already in those blocks —
-that's part of the "ready-made docker-compose". Your job is the `Dockerfile` + uncommenting.
+that's part of the Compose baseline. The learning topic here is the `Dockerfile` and wiring it into Compose.
 
 ---
 
@@ -147,4 +146,4 @@ that's part of the "ready-made docker-compose". Your job is the `Dockerfile` + u
 | `Container killed OOMKilled` on Fargate | missing `MaxRAMPercentage`, the JVM sees the host's RAM |
 | ECS deploy hangs until timeout, then `SIGKILL` | `ENTRYPOINT` in shell form → java isn't PID 1, doesn't catch `SIGTERM` |
 | `HEALTHCHECK` always `unhealthy` | `curl` missing from the image, or `--start-period` too short |
-| `permission denied` on startup | `USER` set before `COPY --chown`, files are owned by root |
+| `permission denied` on startup | `USER` set before `COPY --chown`, files are owned |
